@@ -55,4 +55,4 @@ Configurations are JSON files saved under `configs/`. The `configs/` directory i
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+BSD 3-Clause — see [LICENSE](LICENSE)

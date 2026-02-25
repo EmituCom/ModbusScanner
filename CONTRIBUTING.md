@@ -42,4 +42,4 @@ Common prefixes: `feat`, `fix`, `docs`, `refactor`, `chore`.
 
 ## License
 
-By contributing you agree that your contributions will be licensed under the [MIT License](LICENSE).
+By contributing you agree that your contributions will be licensed under the [BSD 3-Clause License](LICENSE).
