@@ -1,7 +1,7 @@
 {
 	"name": "@emitucom/modbus-scanner",
 	"version": "1.0.0",
-	"description": "",
+	"description": "Terminal UI tool for scanning and monitoring Modbus RTU and TCP devices",
 	"main": "src/main.js",
 	"engines": {
 		"node": ">=8.17.0"
@@ -13,13 +13,23 @@
 	},
 	"author": "Emitu <dev@emitu.com> (https://emitu.com)",
 	"license": "MIT",
-	"homepage": "",
+	"homepage": "https://github.com/EmituCom/ModbusScanner#readme",
 	"repository": {
 		"type": "git",
-		"url": ""
+		"url": "https://github.com/EmituCom/ModbusScanner.git"
 	},
 	"bugs": {
-		"url": ""
+		"url": "https://github.com/EmituCom/ModbusScanner/issues"
 	},
-	"keywords": {}
+	"keywords": [
+		"modbus",
+		"modbus-rtu",
+		"modbus-tcp",
+		"scanner",
+		"cli",
+		"tui",
+		"serial",
+		"plc",
+		"industrial"
+	]
 }
