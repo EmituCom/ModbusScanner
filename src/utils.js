@@ -94,7 +94,7 @@ const validateIP = (ip) => {
   if (!ip) return "IP Required";
 
   const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
-  if (ipv4Regex.test(ip)) return true;
+  if (ipv4Regex.test(ip) && ip.split('.').every(o => parseInt(o) <= 255)) return true;
 
   if (ip.includes('#')) return true;
 

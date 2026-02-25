@@ -5,8 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
 ## [1.0.0] - 2026-02-25
 
 ### Added
@@ -20,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch register entry using ranges and comma-separated lists
 - Persistent JSON configuration saved under a local `configs/` directory
 - Keyboard-driven navigation with vi-style `h`/`l` movement
+- Jest test suite covering `src/utils.js` and `src/modbus/types.js`
+- `createRegister` exported from `src/modbus/types.js`
 
 [Unreleased]: https://github.com/EmituCom/ModbusScanner/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/EmituCom/ModbusScanner/releases/tag/v1.0.0

@@ -147,6 +147,7 @@ const parseBatchRegisters = (input, description = "", endianness = null, sizes =
 };
 
 module.exports = {
+  createRegister,
   parseBatchRegisters,
   interpretBuffer,
   getSizes,
