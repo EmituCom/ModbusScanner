@@ -118,6 +118,7 @@ const runCLI = async () => {
     commandButtons.create.on('press', guard(actions.create));
     commandButtons.back.on('press', guard(actions.back));
     commandButtons.save.on('press', guard(actions.save));
+    commandButtons.toggleSelection.on('press', guard(actions.toggleSelection));
     commandButtons.quit.on('press', guard(actions.quit));
   }
 

@@ -77,6 +77,7 @@ const commands = [
   { key: 'R', label: 'efresh', id: 'refresh' },
   { key: 'B', label: 'ack to start', id: 'back' },
   { key: 'S', label: 'ave', id: 'save' },
+  { key: 'X', label: '{inverse}/Spc{/inverse} Select', id: 'toggleSelection' },
   { key: 'Q', label: 'uit', id: 'quit' },
 ];
 
@@ -84,9 +85,11 @@ const commandButtons = {};
 const GAP = 2;
 let currentLeft = 1;
 
+const stripTags = (str) => str.replace(/\{[^}]+\}/g, '');
+
 commands.forEach(cmd => {
   const content = `{inverse}${cmd.key}{/inverse}${cmd.label}`;
-  const width = cmd.label.length + 2;
+  const width = stripTags(cmd.label).length + 2;
 
   const btn = blessed.button({
     parent: buttonRow,
