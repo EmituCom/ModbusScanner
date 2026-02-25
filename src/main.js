@@ -54,7 +54,7 @@ const runCLI = async () => {
 
   const runScan = async () => {
     log('Started scan...');
-    await runScanLoop(client, globalConfig, refreshInfo);
+    await runScanLoop(client, globalConfig, refreshInfo, updateTree);
     log('Scan finished...');
   }
 

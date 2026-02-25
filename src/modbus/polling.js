@@ -1,5 +1,4 @@
 const { readRegistersOnce } = require("./scanner");
-const { updateTree } = require("../ui/render");
 
 const setAsScanning = (globalConfig) => {
   if (!globalConfig.setups) return;
@@ -25,7 +24,7 @@ const scanSlave = async (client, conn, slave, uiContext) => {
   slave.isScanning = false;
 
   if (uiContext.refreshInfo) uiContext.refreshInfo();
-  updateTree(uiContext.globalConfig.setups);
+  if (uiContext.onUpdate) uiContext.onUpdate(uiContext.globalConfig.setups);
 
   return error;
 };
@@ -63,8 +62,8 @@ const scanSetup = async (client, setup, uiContext) => {
   setup.isScanning = false;
 };
 
-const runScanLoop = async (client, globalConfig, refreshInfo, isActive) => {
-  const uiContext = { refreshInfo, globalConfig };
+const runScanLoop = async (client, globalConfig, refreshInfo, onUpdate, isActive) => {
+  const uiContext = { refreshInfo, globalConfig, onUpdate };
 
   if (isActive && !isActive()) return;
 
@@ -78,7 +77,7 @@ const runScanLoop = async (client, globalConfig, refreshInfo, isActive) => {
   }
 
   refreshInfo();
-  updateTree(globalConfig.setups);
+  if (uiContext.onUpdate) uiContext.onUpdate(globalConfig.setups);
 };
 
 module.exports = { setAsScanning, runScanLoop };
