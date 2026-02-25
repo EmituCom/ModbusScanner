@@ -2,6 +2,8 @@
 
 A terminal UI tool for scanning and monitoring Modbus devices over RTU (serial) and TCP connections.
 
+[![Modbus Scanner Screenshot](docs/screenshot.png)](docs/screenshot.png)
+
 ## Features
 
 - **Modbus RTU** — connect via serial port with configurable baud rate, parity, stop bits, and data bits
@@ -26,6 +28,12 @@ npm install
 ```
 
 ## Usage
+
+``` bash
+npm start
+```
+
+or
 
 ```bash
 node src/main.js
