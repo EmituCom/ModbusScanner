@@ -1,6 +1,28 @@
 const { askChoice, askForm, askRegisterForm, askSlaveForm } = require("../ui/forms");
 const { getSerialPorts } = require('../utils');
-const { expandList, validateBatchInput, validateIP, getAllIPs } = require("../utils");
+const { parseBatchInput, validateBatchInput, validateIP, getAllIPs } = require("../utils");
+
+// A checkbox group matches its defaults as strings, and an empty list means
+// "nothing preselected" - so a stored value must always reach the form as a
+// non-empty string, even when it is a number or is missing from the options.
+const isBlank = (value) =>
+  value === undefined || value === null || value === "" || (typeof value === "number" && isNaN(value));
+
+const asDefaultList = (value, fallback) => {
+  const v = isBlank(value) ? fallback : value;
+  if (isBlank(v)) return [];
+  return (Array.isArray(v) ? v : [v]).filter(x => !isBlank(x)).map(String);
+};
+
+const asDefaultText = (value, fallback) => {
+  const v = isBlank(value) ? fallback : value;
+  return isBlank(v) ? "" : String(v);
+};
+
+// A checkbox group has no validator of its own, so an empty selection would
+// silently produce zero connections and discard the edit.
+const validateSelection = (label) => (value) =>
+  (Array.isArray(value) ? value.length > 0 : !!value) ? true : `Select at least one ${label}`;
 
 const promptForConnections = async () => {
   const type = await askChoice("Connection Type", [
@@ -64,7 +86,7 @@ const promptRTU = async (extraFields = []) => {
   const ports = await getSerialPorts();
 
   const contentForm = await askForm("RTU configuration", [
-    { label: "Ports", key: "ports", default: [], options: ports, custom: true },
+    { label: "Ports", key: "ports", default: [], options: ports, custom: true, validate: validateSelection("port") },
     { label: "Baud Rates", key: "bauds", options: ["9600", "19200", "38400", "57600", "115200"], default: ["9600"], custom: true },
     { label: "Parity", key: "parities", options: ["none", "even", "odd"], default: ["none"] },
     { label: "Stop Bits", key: "stops", options: ["1", "2"], default: ["1"] },
@@ -82,7 +104,7 @@ const promptRTU = async (extraFields = []) => {
   const parityList = contentForm.parities;
   const stopList = contentForm.stops.map(Number);
   const dataList = contentForm.data.map(Number);
-  const startAddresses = expandList(contentForm.startAddresses);
+  const startAddresses = parseBatchInput(contentForm.startAddresses) || [];
   const timeout = parseInt(contentForm.timeout, 10);
 
   for (const p of portList) {
@@ -109,15 +131,16 @@ const promptRTU = async (extraFields = []) => {
 const editRTU = async (conn) => {
   const ports = await getSerialPorts();
   const candidateConfigs = [];
+  const options = conn.options || {};
 
   const formResult = await askForm("Edit RTU configuration", [
-    { label: "Ports", key: "ports", default: [conn.options.port], options: ports, custom: true },
-    { label: "Baud Rates", key: "bauds", options: ["9600", "19200", "38400", "57600", "115200"], default: [conn.options.baudrate.toString()], custom: true },
-    { label: "Parity", key: "parities", options: ["none", "even", "odd"], default: [conn.options.parity] },
-    { label: "Stop Bits", key: "stops", options: ["1", "2"], default: [conn.options.stopbit.toString()] },
-    { label: "Data Bits", key: "data", options: ["8", "7"], default: [conn.options.databit.toString()] },
-    { label: "Start Address", key: "startAddress", default: (conn.options.startAddress || "0").toString(), hint: "Comma separated (e.g. 0, 1).", validate: validateBatchInput },
-    { label: "Timeout", key: "timeout", default: conn.options.timeout, hint: "A timeout in milliseconds. (e.g. 800)." }
+    { label: "Ports", key: "ports", default: asDefaultList(options.port), options: ports, custom: true, validate: validateSelection("port") },
+    { label: "Baud Rates", key: "bauds", options: ["9600", "19200", "38400", "57600", "115200"], default: asDefaultList(options.baudrate, "9600"), custom: true },
+    { label: "Parity", key: "parities", options: ["none", "even", "odd"], default: asDefaultList(options.parity, "none") },
+    { label: "Stop Bits", key: "stops", options: ["1", "2"], default: asDefaultList(options.stopbit, "1") },
+    { label: "Data Bits", key: "data", options: ["8", "7"], default: asDefaultList(options.databit, "8") },
+    { label: "Start Address", key: "startAddress", default: asDefaultText(options.startAddress, "0"), hint: "Comma separated (e.g. 0, 1).", validate: validateBatchInput },
+    { label: "Timeout", key: "timeout", default: asDefaultText(options.timeout, "800"), hint: "A timeout in milliseconds. (e.g. 800)." }
   ]);
 
   if (formResult) {
@@ -126,7 +149,7 @@ const editRTU = async (conn) => {
     const parityList = formResult.parities;
     const stopList = formResult.stops.map(Number);
     const dataList = formResult.data.map(Number);
-    const startAddresses = expandList(formResult.startAddress).map(Number);
+    const startAddresses = parseBatchInput(formResult.startAddress) || [];
     const timeout = parseInt(formResult.timeout, 10);
 
     for (const p of portList) {
@@ -165,8 +188,8 @@ const promptTCP = async (extraFields = []) => {
   if (!contentForm) return null;
 
   const connectionConfigs = [];
-  const portList = expandList(contentForm.port);
-  const startAddresses = expandList(contentForm.startAddresses);
+  const portList = parseBatchInput(contentForm.port) || [];
+  const startAddresses = parseBatchInput(contentForm.startAddresses) || [];
   const timeout = parseInt(contentForm.timeout, 10);
 
   portList.forEach(port => {
@@ -175,7 +198,7 @@ const promptTCP = async (extraFields = []) => {
         connectionConfigs.push({
           name: `${h}:${port} (start address ${s})`,
           type: 'tcp',
-          options: { host: h, port: parseInt(port), startAddress: s, timeout }
+          options: { host: h, port, startAddress: s, timeout }
         });
       });
     });
@@ -186,20 +209,20 @@ const promptTCP = async (extraFields = []) => {
 
 const editTCP = async (conn) => {
   const ips = getAllIPs();
-  const hostDefault = [conn.options.host];
+  const options = conn.options || {};
   const candidateConfigs = [];
 
   const formResult = await askForm("Edit TCP Connection", [
-    { label: "Host IP", key: "host", default: hostDefault, options: ips, custom: true, validate: validateIP },
-    { label: "Port", key: "port", default: conn.options.port.toString(), hint: "Comma separated (e.g. 502, 503).", validate: validateBatchInput },
-    { label: "Start Address", key: "startAddress", default: (conn.options.startAddress || "0").toString(), hint: "Comma separated (e.g 0, 1).", validate: validateBatchInput },
-    { label: "Timeout", key: "timeout", default: conn.options.timeout.toString(), hint: "A timeout in milliseconds. (e.g. 800)." }
+    { label: "Host IP", key: "host", default: asDefaultList(options.host), options: ips, custom: true, validate: validateIP },
+    { label: "Port", key: "port", default: asDefaultText(options.port, "502"), hint: "Comma separated (e.g. 502, 503).", validate: validateBatchInput },
+    { label: "Start Address", key: "startAddress", default: asDefaultText(options.startAddress, "0"), hint: "Comma separated (e.g 0, 1).", validate: validateBatchInput },
+    { label: "Timeout", key: "timeout", default: asDefaultText(options.timeout, "800"), hint: "A timeout in milliseconds. (e.g. 800)." }
   ]);
 
   if (formResult) {
     const hosts = formResult.host;
-    const ports = expandList(formResult.port);
-    const startAddresses = expandList(formResult.startAddress);
+    const ports = parseBatchInput(formResult.port) || [];
+    const startAddresses = parseBatchInput(formResult.startAddress) || [];
     const timeout = parseInt(formResult.timeout, 10);
 
     ports.forEach(p => {
@@ -208,7 +231,7 @@ const editTCP = async (conn) => {
           candidateConfigs.push({
             name: `${h}:${p} (start address ${s})`,
             type: 'tcp',
-            options: { host: h, port: parseInt(p), startAddress: parseInt(s), timeout }
+            options: { host: h, port: p, startAddress: s, timeout }
           });
         });
       });

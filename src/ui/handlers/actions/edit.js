@@ -119,15 +119,24 @@ const editStrategies = {
     }
 
     if (candidateConfigs && candidateConfigs.length > 0) {
+      const sameValue = (a, b) => String(a) === String(b);
+
       const optionsMatch = (a, b) => {
-        if (conn.type === 'tcp') return a.host === b.host && a.port === b.port && a.startAddress === b.startAddress;
-        return a.port === b.port && a.baudrate === b.baudrate && a.parity === b.parity && a.stopbit === b.stopbit && a.databit === b.databit && a.startAddress === b.startAddress;
+        if (!a || !b) return false;
+
+        if (conn.type === 'tcp')
+          return sameValue(a.host, b.host) && sameValue(a.port, b.port) && sameValue(a.startAddress, b.startAddress);
+
+        return sameValue(a.port, b.port) && sameValue(a.baudrate, b.baudrate) && sameValue(a.parity, b.parity)
+          && sameValue(a.stopbit, b.stopbit) && sameValue(a.databit, b.databit) && sameValue(a.startAddress, b.startAddress);
       };
 
       let reusedCurrent = false;
 
       for (const config of candidateConfigs) {
-        const alreadyExists = setup.connections.some(c => c !== conn && c.type === config.type && optionsMatch(c.options, config.options) && c.options.timeout === c.options.timeout);
+        const alreadyExists = setup.connections.some(c => c !== conn && c.type === config.type
+          && optionsMatch(c.options, config.options)
+          && sameValue(c.options && c.options.timeout, config.options.timeout));
         if (alreadyExists) continue;
 
         if (!reusedCurrent) {
@@ -148,8 +157,8 @@ const editStrategies = {
       }
 
       if (!reusedCurrent) {
-        const idx = setup.connections.indexOf(conn);
-        if (idx > -1) setup.connections.splice(idx, 1);
+        log("That connection already exists; left unchanged.");
+        return;
       }
 
       log(`Updated connection(s).`);

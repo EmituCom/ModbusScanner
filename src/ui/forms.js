@@ -8,6 +8,24 @@ const FOCUS_STYLE = { fg: 'black', bg: 'blue' }
 const UNFOCUS_STYLE = { fg: 'black', bg: 'white' }
 const STYLE = { ...UNFOCUS_STYLE, focus: { ...FOCUS_STYLE } }
 
+// The values a checkbox group renders: its options, plus any default that is
+// not among them (a custom host, serial port or baud rate). Both the height
+// calculation and the render loop must agree, or the form is mis-sized.
+const optionRows = (field) => {
+  const raw = field.default === undefined || field.default === null || field.default === ""
+    ? []
+    : (Array.isArray(field.default) ? field.default : [field.default]);
+
+  const defaults = raw
+    .filter(d => d !== undefined && d !== null && d !== "")
+    .map(String);
+
+  const options = field.options.map(String);
+  const extras = defaults.filter((d, i) => !options.includes(d) && defaults.indexOf(d) === i);
+
+  return { defaults, values: [...options, ...extras] };
+};
+
 const destroy = (widget) => {
   widget.destroy();
   setModalOpen(false);
@@ -111,7 +129,7 @@ const askForm = async (title, fields, inside = false) => {
     let calculatedHeight = 4;
     fields.forEach(f => {
       if (f.options) {
-        calculatedHeight += f.options.length + (f.custom ? 1 : 0) + 1;
+        calculatedHeight += optionRows(f).values.length + (f.custom ? 1 : 0) + 1;
       } else {
         calculatedHeight += 2;
       }
@@ -234,8 +252,10 @@ const askForm = async (title, fields, inside = false) => {
       } else if (field.options) {
         widgetRefs[field.key] = [];
 
-        field.options.forEach(opt => {
-          const isChecked = field.default && field.default.includes(opt);
+        const { defaults, values } = optionRows(field);
+
+        values.forEach(opt => {
+          const isChecked = defaults.includes(opt);
 
           const checkbox = blessed.checkbox({
             parent: form,
@@ -285,9 +305,9 @@ const askForm = async (title, fields, inside = false) => {
           });
 
           otherCheckbox.on('uncheck', () => {
-            otherCheckbox.text = ` Other ...`;
+            otherCheckbox.text = ` Other...`;
             otherCheckbox.setContent(` Other...`);
-            otherCheckbox.value = "Other";
+            otherCheckbox.optionValue = undefined;
             screen.render();
           });
 
@@ -304,7 +324,7 @@ const askForm = async (title, fields, inside = false) => {
           right: 2,
           height: 1,
           inputOnFocus: true,
-          value: field.default || "",
+          value: field.default === undefined || field.default === null ? "" : String(field.default),
           name: field.key,
           mouse: true,
           style: { ...UNFOCUS_STYLE, focus: { ...FOCUS_STYLE } }
@@ -350,7 +370,9 @@ const askForm = async (title, fields, inside = false) => {
         let value;
         if (field.options) {
           const checkboxes = widgetRefs[field.key];
-          value = checkboxes.filter(cb => cb.checked).map(cb => cb.optionValue);
+          value = checkboxes
+            .filter(cb => cb.checked && cb.optionValue !== undefined && cb.optionValue !== "")
+            .map(cb => cb.optionValue);
         } else if (field.button) {
           value = widgetRefs[field.key].value;
         } else {
@@ -409,11 +431,14 @@ const askRegisterForm = async (question, inside = false, previousData = null) =>
   const allFunctions = getFunctions().map(f => f.name);
   const defaultFunc = ["Read Holding Registers (0x03)"];
 
-  const defRegs = previousData ? previousData.regs : "";
-  const defFuncs = previousData ? previousData.funcs : defaultFunc;
-  const defDesc = previousData ? previousData.desc : "";
-  const defSizes = previousData ? previousData.sizes : allSizes;
-  const defEndian = previousData ? previousData.endian : allEndian;
+  const pick = (value, fallback) =>
+    value === undefined || value === null || (Array.isArray(value) && value.length === 0) ? fallback : value;
+
+  const defRegs = previousData ? pick(previousData.regs, "") : "";
+  const defFuncs = previousData ? pick(previousData.funcs, defaultFunc) : defaultFunc;
+  const defDesc = previousData ? pick(previousData.desc, "") : "";
+  const defSizes = previousData ? pick(previousData.sizes, allSizes) : allSizes;
+  const defEndian = previousData ? pick(previousData.endian, allEndian) : allEndian;
 
   const validateRegisters = (val) => {
     if (!val || val.trim().length === 0) return "Registers cannot be empty";
@@ -452,8 +477,11 @@ const askRegisterForm = async (question, inside = false, previousData = null) =>
 }
 
 const askSlaveForm = async (question, inside = false, previousData = null) => {
-  const defSlaves = previousData ? previousData.slaves.toString() : "1"
-  const defUnitIds = previousData ? previousData.unitIds.toString() : "1"
+  const asText = (value, fallback) =>
+    value === undefined || value === null || value === "" ? fallback : String(value);
+
+  const defSlaves = previousData ? asText(previousData.slaves, "1") : "1"
+  const defUnitIds = previousData ? asText(previousData.unitIds, "1") : "1"
 
   const form = await askForm(question, [
     { label: "Slave IDs", key: "slaves", default: defSlaves, hint: "A comma separated list with ranges (e.g. 1, 5-10, 11..15).", validate: validateBatchInput },
